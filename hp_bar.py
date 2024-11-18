@@ -37,22 +37,25 @@ class MPBar:
         self.image = load_image('mp.png')
         self.max_width = self.image.w
         self.height = self.image.h
-        self.x, self.y = 120, 560  # MP 바 위치
+        self.x, self.y = 120, 560  # MP 바 위치 (조정 필요)
         self.current_mp = 1.0
 
     def update(self, mp_ratio):
         self.current_mp = mp_ratio
 
     def draw(self):
-        scale_x = 10.3
-        scale_y = 12.3
-        clip_width = int(self.max_width * self.current_mp)  # 현재 MP에 따라 클립할 너비 계산
-        # MP 바의 왼쪽에서 오른쪽으로 줄어들게 설정
+        scale_x = 10.3  # 가로 확대 비율
+        scale_y = 12.3  # 세로 확대 비율
+        clip_width = int(self.max_width * self.current_mp)  # 현재 MP 비율에 따른 실제 너비
+
+        # MP 바가 왼쪽에서 오른쪽으로 감소하도록 설정
         self.image.clip_draw(
-            0, 0,  # 왼쪽 상단에서 시작
+            0, 0,  # 이미지의 시작 좌표
             clip_width, self.height,  # 현재 MP 비율에 따른 너비와 높이
-            self.x - (self.max_width - clip_width) / 2, self.y,  # X 위치 보정
-            clip_width, self.height * scale_y  # 최종 확대 크기 적용
+            self.x - (self.max_width * scale_x - clip_width * scale_x) / 2,  # X 위치 보정
+            self.y,  # Y 위치
+            clip_width * scale_x,  # 확대된 가로 크기
+            self.height * scale_y  # 확대된 세로 크기
         )
 
 
