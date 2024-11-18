@@ -1,59 +1,241 @@
 from pico2d import *
-import time
+import game_framework
+from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down
+from hp_bar import HPBar,HPBarUI, MPBar,ExpBar
 
-class Character: #Character 클래스 생성
+
+FRAMES_PER_ACTION = 8
+ACTION_PER_TIME = 1.0 / 1.0
+RUN_SPEED_PPS = 200
+
+
+class Character:
     def __init__(self):
-        #두 개의 스프라이트 시트 로드
-        self.image1 = load_image('character1.png')
-        self.image2 - load_image('character2.png')
+        self.x, self.y = 400, 90
+        self.hp = 1.0
+        self.mp = 1.0
+        self.hp_bar = HPBar()
+        self.mp_bar = MPBar()
+        self.face_dir = 1
+        self.dir = 0
+        self.image = load_image('character.png')
+        self.state_machine = StateMachine(self)
+        self.state_machine.start(Idle)
+        self.state_machine.set_transitions(
+            {
+                Idle: {right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2},
+                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2},
+                Attack1: {left_up: Idle, right_up: Idle},
+                Attack2: {left_up: Idle, right_up: Idle},
+            }
+        )
 
-        self.frame = 0.0 #프레임을 float로 관리
-        self.action = 'Idle' #기본 상태는 Idle
-        self.x, self.y = 400, 300 #초기 위치
-        self.velocity = 0 # 이동속도
-        self.frame_time = 0.1 #한 프레임당 유지 시간(초 단위)
+    def take_damage(self, damage):
+        """데미지를 입으면 HP 감소"""
+        self.hp -= damage
+        if self.hp < 0:
+            self.hp = 0  # HP는 최소 0으로 유지
+        self.hp_bar.update(self.hp)
 
-        self.last_time = time.time()
-
-        self.actions = { #각 스프라이트 시트에서 동작별 프레임 범위 정의
-            'Idle': (self.image1,0,5),
-            'Walk': (self.image1,6,13),
-            'Run': (self.image1,14,21),
-            'Jump': (self.image1,22,29),
-            'Attack1': (self.image1,30,36),
-            'Attack2': (self.image2,0,3),
-            'Attack3': (self.image2,4,6),
-            'Shield': (self.image2,7,8),
-            'Hurt': (self.image2,9,10),
-            'Dead': (self.image2,11,13)
-        }
-    def set_action(self, action):
-        if action in self.actions:
-            self.action = action
-            self.frame = self.actions[action][1] #해당 액션의 첫번째 프레임으로 초기화
+    def use_mana(self,amount):
+        self.mp = max(0, self.mp - amount)
+        self.mp_bar.update(self.mp)
 
     def update(self):
-        #현재 시간 가져오기
-        current_time = time.time()
-        delta_time = current_time - self.last_time
-        self.last_time = current_time
+        self.state_machine.update()
 
-        #현재 동작의 프레임 범위를 기준으로 프레임 업데이트
-        image, start, end = self.actions[self.action]
-        self.frame += (1 / self.frame_time) * delta_time #시간에 따라 프레임 증가
+    def handle_event(self, event):
+        self.state_machine.add_event(event)
 
-        # 끝 프레임을 넘으면 다시 시작 프레임으로 루프
-        if self.frame > end:
-            self.frame = start
-
-        #캐릭터 이동 처리
-        self.x += self.velocity * delta_time
 
     def draw(self):
-        #현재 동작에 해당하는 스프라이트 시트를 기준으로 프레임 그리기
-        image, start, end = self.actions[self.action]
-        frame_width = image.w // (end+1) #각 프레임의 가로 크기
-        frame_height = image.h #각 프레임의 세로 크기
+        self.state_machine.draw()
+        self.hp_bar.draw()
+        self.mp_bar.draw()
 
-        image.clip_draw(int(self.frame) * frame_width, 0, frame_width, frame_height, self.x, self.y)
-            #
+
+
+# 상태 정의
+class Idle:
+
+    @staticmethod
+    def enter(character, event=None):
+        print("Entering Walk State")
+        if character.dir != 0:
+            character.face_dir = character.dir
+        character.frame = 0
+        if event and right_down(event):
+            character.dir = 1  # 오른쪽으로 이동
+        elif event and left_down(event):
+            character.dir = -1  # 왼쪽으로 이동
+        character.action = 1  # Walk 액션 설정
+    @staticmethod
+    def exit(character):
+        character.face_dir = character.dir
+
+    @staticmethod
+    def do(character):
+        # frame_time 기반 애니메이션 업데이트
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 10
+
+        # 디버깅용 프레임 출력
+        print(f"Idle Frame: {character.frame}")
+
+    @staticmethod
+    def draw(character):
+        frame_width = 84
+        frame_height = 80
+
+        col = int(character.frame)
+        y_position = character.image.h - 80  # 첫 줄의 Idle 모션
+
+        if character.face_dir == 1:  # 오른쪽 바라보기
+            character.image.clip_composite_draw(
+                col * frame_width,
+                y_position,
+                frame_width,
+                frame_height,
+                0,  # 회전 각도
+                'h',  # 수평 반전
+                character.x,
+                character.y,
+                frame_width,
+                frame_height
+            )
+        else:  # 왼쪽 바라보기
+            character.image.clip_draw(
+                col * frame_width,
+                y_position,
+                frame_width,
+                frame_height,
+                character.x,
+                character.y
+            )
+class Walk:
+    @staticmethod
+    def enter(character, event=None):
+        print("Entering Walk State")
+        if event and right_down(event):
+            character.dir = 1  # 오른쪽 이동
+        elif event and left_down(event):
+            character.dir = -1  # 왼쪽 이동
+
+        character.action = 1  # Walk 액션 설정
+
+        character.frame = 0  # Walk 상태 진입 시 첫 프레임으로 초기화
+
+    @staticmethod
+    def exit(character):
+        if character.dir != 0:
+            character.face_dir = character.dir
+
+    @staticmethod
+    def do(character):
+        # 0~3 프레임 순환 (4프레임)
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 4
+        character.x += character.dir * RUN_SPEED_PPS * game_framework.frame_time  # 캐릭터 이동
+        print(f"Character position: {character.x}, {character.y}")  # 위치 디버깅
+
+    @staticmethod
+    def draw(character):
+        frame_width = 84  # 프레임 너비
+        frame_height = 80  # 프레임 높이
+        col = int(character.frame)  # 현재 열 번호 (0~3)
+        row = 2  # 걷는 모션이 3번째 줄(2번째 행)
+
+        # Y 위치 조정 (캐릭터의 y축을 약간 위로 이동)
+        y_position = character.image.h - (row + 1) * frame_height - 40  # 10px 위로 보정
+
+        if character.dir == 1:
+            character.image.clip_composite_draw(
+                col * frame_width,  # 스프라이트의 열 시작 위치
+                y_position,  # Y 위치
+                frame_width,  # 프레임 너비
+                frame_height,  # 프레임 높이
+                0,  # 회전 각도
+                'h',  # 수평 반전
+                character.x,  # 출력 X 위치 (화면상의 위치)
+                character.y,  # 출력 Y 위치 (화면상의 위치)
+                frame_width,  # 실제 그릴 너비
+                frame_height
+            )
+        else:
+            character.image.clip_draw(
+                col * frame_width + 5,  # 열에 따른 X 위치
+                y_position,  # 보정된 Y 위치
+                frame_width,  # 프레임 너비
+                frame_height,  # 프레임 높이
+                character.x,  # 출력 X 위치
+                character.y  # 출력 Y 위치
+        )
+
+class Attack1:
+    @staticmethod
+    def enter(character, event=None):
+        character.frame = 0  # 공격 시작 시 첫 프레임 초기화
+        character.mp -= 0.1
+        character.mp = max(0, character.mp)
+
+    @staticmethod
+    def exit(character):
+        pass
+
+    @staticmethod
+    def do(character):
+        # 0~5 프레임 순환 (6프레임)
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 6
+        character.mp_bar.update(character.mp)
+        # 공격 애니메이션이 끝나면 Idle 상태로 전환
+        if character.frame >= 5:
+            character.state_machine.change_state(Idle)
+
+    @staticmethod
+    def draw(character):
+        frame_widths = [89, 89, 89, 110, 110, 110]  # 각 프레임의 실제 너비
+        frame_adjustments = [0, 0, -35, -30, -30, -30]  # 오른쪽 확장을 위한 조정 값
+        frame_coordinates = [
+            (0, 689, 89, 776),  # Frame 1
+            (89, 689, 178, 776),  # Frame 2
+            (178, 689, 267, 776),  # Frame 3
+            (267, 689, 377, 776),  # Frame 4
+            (377, 689, 487, 776),  # Frame 5
+            (487, 689, 597, 776)  # Frame 6
+        ]
+
+        col = int(character.frame)  # 현재 프레임 인덱스
+        x1, y1, x2, y2 = frame_coordinates[col]
+        adjustment = frame_adjustments[col]  # 오른쪽 확장을 위한 조정
+
+        y_offset = 14  # Y축 보정값
+
+        if character.face_dir == 1:  # 오른쪽 방향
+            character.image.clip_composite_draw(
+                x1, y1, (x2 - x1) + adjustment, y2 - y1,  # 오른쪽 확장
+                0, 'h',  # 수평 반전
+                character.x, character.y + y_offset,  # 출력 위치
+                        (x2 - x1) + adjustment, y2 - y1  # 최종 출력 크기
+            )
+        else:  # 왼쪽 방향
+            character.image.clip_draw(
+                x1, y1, (x2 - x1) + adjustment, y2 - y1,  # 오른쪽 확장 적용
+                character.x, character.y + y_offset  # 출력 위치
+            )
+
+class Attack2:
+    @staticmethod
+    def enter(character):
+        character.frame = 0
+
+    @staticmethod
+    def exit(character):
+        pass
+
+    @staticmethod
+    def do(character):
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 4
+
+    @staticmethod
+    def draw(character):
+        character.image.clip_draw(int(character.frame) * 84, 3 * 80, 84, 80, character.x, character.y)
+
+

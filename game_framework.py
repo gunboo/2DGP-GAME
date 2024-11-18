@@ -1,63 +1,61 @@
 import time
+from pico2d import delay
+
+running = True
+stack = []  # 상태 스택 관리
+frame_time = 0.0  # 각 프레임의 시간 차이
+
+def run(start_state):
+    global running, frame_time, stack
+    running = True
+    stack.append(start_state)
+    start_state.init()
+
+    current_time = time.time()
+
+    while running:
+        new_time = time.time()
+        frame_time = new_time - current_time
+        current_time = new_time
 
 
-def change_mode(mode):
+
+        current_state = stack[-1]
+
+        # 상태 처리
+        current_state.handle_events()
+        current_state.update()
+        current_state.draw()
+
+        delay(0.01)  # 프레임 속도 조정
+
+    while stack:
+        stack.pop().exit()
+
+def change_state(state):
     global stack
-    if (len(stack) > 0):
-        # execute the current mode's finish function
-        stack[-1].finish()
-        # remove the current mode
+    if stack:
+        stack[-1].exit()
         stack.pop()
-    stack.append(mode)
-    mode.init()
+    stack.append(state)
+    state.enter()
 
-
-def push_mode(mode):
+def push_state(state):
     global stack
-    if (len(stack) > 0):
+    if stack:
         stack[-1].pause()
-    stack.append(mode)
-    mode.init()
+    stack.append(state)
+    state.enter()
 
-
-def pop_mode():
+def pop_state():
     global stack
-    if (len(stack) > 0):
-        # execute the current mode's finish function
-        stack[-1].finish()
-        # remove the current mode
+    if stack:
+        stack[-1].exit()
         stack.pop()
 
-    # execute resume function of the previous mode
-    if (len(stack) > 0):
+    if stack:
         stack[-1].resume()
-
 
 def quit():
     global running
     running = False
-
-
-def run(start_mode):
-    global running, stack
-    running = True
-    stack = [start_mode]
-    start_mode.init()
-
-    global frame_time
-    frame_time = 0.0
-    current_time = time.time()
-
-    #얘가 게임 루프임 프레임타임은 얘가 가동되는 시간임(로직 - 렌더링)
-    while running:
-        stack[-1].handle_events()
-        stack[-1].update(frame_time)
-        stack[-1].draw()
-
-        frame_time = time.time() - current_time
-        frame_rate = 1.0 / frame_time
-        current_time += frame_time
-
-    while (len(stack) > 0):
-        stack[-1].finish()
-        stack.pop()
