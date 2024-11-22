@@ -1,6 +1,6 @@
 from pico2d import *
 import game_framework
-from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down
+from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down, alt_down
 from hp_bar import HPBar,HPBarUI, MPBar,ExpBar
 
 
@@ -23,10 +23,11 @@ class Character:
         self.state_machine.start(Idle)
         self.state_machine.set_transitions(
             {
-                Idle: {right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2},
-                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2},
+                Idle: {right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2, alt_down: Jump},
+                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2, alt_down:Jump},
                 Attack1: {left_up: Idle, right_up: Idle},
                 Attack2: {left_up: Idle, right_up: Idle},
+                Jump: {},
             }
         )
 
@@ -77,9 +78,6 @@ class Idle:
     def do(character):
         # frame_time 기반 애니메이션 업데이트
         character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 10
-
-        # 디버깅용 프레임 출력
-        print(f"Idle Frame: {character.frame}")
 
     @staticmethod
     def draw(character):
@@ -238,4 +236,50 @@ class Attack2:
     def draw(character):
         character.image.clip_draw(int(character.frame) * 84, 3 * 80, 84, 80, character.x, character.y)
 
+class Jump:
+    @staticmethod
+    def enter(character, event=None):
+        character.velocity_y =  380# 초기 점프 속도 (위로 상승)
+        character.gravity = -1000 # 중력 값
+        character.jump_origin_y = character.y  # 점프 시작 높이 기록
+        character.frame = 0  # 점프 애니메이션 초기화
 
+    @staticmethod
+    def exit(character):
+        pass
+
+    @staticmethod
+    def do(character):
+        # y 위치 업데이트
+        character.y += character.velocity_y * game_framework.frame_time
+        character.velocity_y += character.gravity * game_framework.frame_time
+
+        # 지면에 도달하면 점프 종료
+        if character.y <= character.jump_origin_y:
+            character.y = character.jump_origin_y  # 지면에서 멈춤
+            character.state_machine.change_state(Idle)
+
+        # 점프 애니메이션
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 4
+
+    @staticmethod
+    def draw(character):
+        # 3번째 줄, 고정된 프레임으로 출력
+        frame_width = 45
+        frame_height = 90
+        x1 = 570 # 해당 프레임의 시작 X좌표
+        row = 2  # 3번째 줄에 위치한 프레임이므로 (2번째 행)
+        y_offset = 0
+
+        if character.face_dir == -1:  #
+            character.image.clip_draw(
+                x1, character.image.h - (row + 1) * frame_height, frame_width, frame_height,
+                character.x, character.y + y_offset
+            )
+        else:  # 왼쪽 방향
+            character.image.clip_composite_draw(
+                x1, character.image.h - (row + 1) * frame_height, frame_width, frame_height,
+                0, 'h',
+                character.x, character.y + y_offset,
+                frame_width, frame_height
+            )
