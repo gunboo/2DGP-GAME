@@ -23,7 +23,7 @@ class Character:
         self.state_machine.start(Idle)
         self.state_machine.set_transitions(
             {
-                Idle: {right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2, alt_down: Jump},
+                Idle: {alt_down: Jump,right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2 },
                 Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2, alt_down:Jump},
                 Attack1: {left_up: Idle, right_up: Idle},
                 Attack2: {left_up: Idle, right_up: Idle},
@@ -61,7 +61,6 @@ class Idle:
 
     @staticmethod
     def enter(character, event=None):
-        print("Entering Walk State")
         if character.dir != 0:
             character.face_dir = character.dir
         character.frame = 0
@@ -109,6 +108,7 @@ class Idle:
                 character.x,
                 character.y
             )
+
 class Walk:
     @staticmethod
     def enter(character, event=None):

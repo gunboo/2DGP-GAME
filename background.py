@@ -3,7 +3,7 @@ from pico2d import *
 class Background:
     def __init__(self):
         # 업로드한 배경 이미지 로드
-        self.image = load_image('background.png')
+        self.image = load_image('background1.png')
         self.x, self.y = 800, 220  # 배경 이미지의 중심 좌표 설정 (1600x600 크기에 맞게)
 
     def update(self):

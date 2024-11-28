@@ -1,0 +1,4 @@
+내가 만든 게임 개선할 점:
+1. 캐릭터 idle, attack1 좌표 다시 따기
+2. boss idle 좌표 다시 따기
+3. idle -> jump 상태 변환시 점프에 delay가 생기는 현상
