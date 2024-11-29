@@ -112,7 +112,6 @@ class Idle:
 class Walk:
     @staticmethod
     def enter(character, event=None):
-        print("Entering Walk State")
         if event and right_down(event):
             character.dir = 1  # 오른쪽 이동
         elif event and left_down(event):
@@ -132,7 +131,7 @@ class Walk:
         # 0~3 프레임 순환 (4프레임)
         character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 4
         character.x += character.dir * RUN_SPEED_PPS * game_framework.frame_time  # 캐릭터 이동
-        print(f"Character position: {character.x}, {character.y}")  # 위치 디버깅
+
 
     @staticmethod
     def draw(character):
