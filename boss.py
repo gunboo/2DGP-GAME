@@ -10,6 +10,7 @@ class Boss:
         self.x, self.y = 1300, 177 # 보스의 초기 위치
         self.frame = 0
         self.timer = 0
+
         self.image = load_image('boss1.png')  # 보스 이미지 로드
         self.state_machine = state_machine.StateMachine(self)  # 기본 상태는 Idle
         self.state_machine.change_state(Idle)
@@ -20,7 +21,18 @@ class Boss:
     def draw(self):
         self.state_machine.draw()  # 현재 상태의 애니메이션 출력
 
+    def get_bb(self):
+        # 충돌 박스 반환 (x1, y1, x2, y2)
+        return self.x - 70, self.y - 100, self.x + 70, self.y + 100
 
+    def draw_bb(self):
+        # 디버깅용: 충돌 박스 그리기
+        draw_rectangle(*self.get_bb())
+
+    def take_damage(self, danage):
+        """보스가 피해를 입을 때 HP 감소"""
+        self.hp = max(0, self.hp - damage)  # HP 감소
+        self.hp_bar.update(self.hp)  # HP 바 상태 업데이트
 
 class Idle:
     @staticmethod

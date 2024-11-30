@@ -12,22 +12,3 @@ class Background:
     def draw(self):
         self.image.draw(self.x, self.y)  # 배경 이미지 중앙 출력
 
-# 단독 실행을 위한 메인 루프
-# if __name__ == "__main__":
-#     open_canvas(1600, 600)
-#     background = Background()
-#
-#     running = True
-#     while running:
-#         events = get_events()
-#         for event in events:
-#             if event.type == SDL_QUIT:
-#                 running = False
-#
-#         clear_canvas()
-#         background.draw()
-#         update_canvas()
-#
-#         delay(0.01)  # 0.01초 딜레이로 화면 갱신
-#
-#     close_canvas()

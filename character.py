@@ -16,6 +16,10 @@ class Character:
         self.mp = 1.0
         self.hp_bar = HPBar()
         self.mp_bar = MPBar()
+        self.last_damage_time = 0  # 마지막으로 데미지를 받은 시간 (초)
+        self.is_knocked_back = False  # 넉백 상태
+        self.knockback_timer = 0  # 넉백 지속 시간
+
         self.face_dir = 1
         self.dir = 0
         self.image = load_image('character.png')
@@ -30,13 +34,22 @@ class Character:
                 Jump: {},
             }
         )
+    def get_bb(self):
+        return self.x -20, self.y -40, self.x+20, self.y+40
+    def draw_bb(self):
+        draw_rectangle(*self.get_bb())
 
-    def take_damage(self, damage):
-        """데미지를 입으면 HP 감소"""
-        self.hp -= damage
-        if self.hp < 0:
-            self.hp = 0  # HP는 최소 0으로 유지
-        self.hp_bar.update(self.hp)
+    def take_damage(self, damage, knockback_dir):
+        """피해를 입을 때 HP 감소 및 넉백"""
+        if not self.is_knocked_back:  # 이미 넉백 중이면 중복 적용 안 함
+            self.hp = max(0, self.hp - damage)
+            self.hp_bar.update(self.hp)
+            print(f"Character HP: {self.hp}")
+
+            self.is_knocked_back = True
+            self.knockback_timer = 0.5  # 넉백 지속 시간 (0.5초)
+            self.state = Hurt  # Hurt 상태로 전환
+            self.knockback_dir = knockback_dir  # 넉백 방향 (-1: 왼쪽, 1: 오른쪽)
 
     def use_mana(self,amount):
         self.mp = max(0, self.mp - amount)
@@ -189,32 +202,32 @@ class Attack1:
     @staticmethod
     def draw(character):
         frame_widths = [89, 89, 89, 110, 110, 110]  # 각 프레임의 실제 너비
-        frame_adjustments = [0, 0, -35, -30, -30, -30]  # 오른쪽 확장을 위한 조정 값
+
         frame_coordinates = [
-            (0, 689, 89, 776),  # Frame 1
-            (89, 689, 178, 776),  # Frame 2
-            (178, 689, 267, 776),  # Frame 3
-            (267, 689, 377, 776),  # Frame 4
-            (377, 689, 487, 776),  # Frame 5
-            (487, 689, 597, 776)  # Frame 6
+            (15, 689, 76, 776),  # Frame 1
+            (100, 689, 168, 776),  # Frame 2
+            (171, 689, 249, 776),  # Frame 3
+            (252, 689, 351, 787),  # Frame 4
+            (354, 689, 454, 787),  # Frame 5
+            (454, 689, 558, 787)  # Frame 6
         ]
 
         col = int(character.frame)  # 현재 프레임 인덱스
         x1, y1, x2, y2 = frame_coordinates[col]
-        adjustment = frame_adjustments[col]  # 오른쪽 확장을 위한 조정
+
 
         y_offset = 14  # Y축 보정값
 
         if character.face_dir == 1:  # 오른쪽 방향
             character.image.clip_composite_draw(
-                x1, y1, (x2 - x1) + adjustment, y2 - y1,  # 오른쪽 확장
+                x1, y1, (x2 - x1), y2 - y1,  # 오른쪽 확장
                 0, 'h',  # 수평 반전
                 character.x, character.y + y_offset,  # 출력 위치
-                        (x2 - x1) + adjustment, y2 - y1  # 최종 출력 크기
+                        (x2 - x1), y2 - y1  # 최종 출력 크기
             )
         else:  # 왼쪽 방향
             character.image.clip_draw(
-                x1, y1, (x2 - x1) + adjustment, y2 - y1,  # 오른쪽 확장 적용
+                x1, y1, (x2 - x1), y2 - y1,  # 오른쪽 확장 적용
                 character.x, character.y + y_offset  # 출력 위치
             )
 
@@ -282,3 +295,30 @@ class Jump:
                 character.x, character.y + y_offset,
                 frame_width, frame_height
             )
+
+class Hurt:
+    @staticmethod
+    def enter(character):
+        character.frame = 0  # Hurt 상태 진입 시 첫 프레임 초기화
+
+    @staticmethod
+    def exit(character):
+        pass
+
+    @staticmethod
+    def do(character):
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 3
+
+    @staticmethod
+    def draw(character):
+        # Hurt 상태의 스프라이트 출력 (예: 5번째 줄)
+        frame_width = 84
+        frame_height = 80
+        row = 6  # Hurt 모션이 5번째 줄 (4번째 행)
+        col = int(character.frame)
+        character.image.clip_draw(
+            col * frame_width,
+            character.image.h - (row + 1) * frame_height,
+            frame_width, frame_height,
+            character.x, character.y
+        )

@@ -17,18 +17,21 @@ class HPBar:
         self.current_hp = 1.0  # 기본 HP 100%
 
     def update(self, hp_ratio):
-        self.current_hp = hp_ratio
+        self.current_hp = max(0, min(hp_ratio, 1.0))
 
     def draw(self):
         # 바 확대 및 위치 조정
-        scale_x = 10.3 # 확대 배율 (가로)
-        scale_y = 12.3 # 확대 배율 (세로)
-        self.image.clip_composite_draw(
-            0, 0,
-            int(self.max_width * self.current_hp), self.height,
-            0, '',  # 회전, 반전 없음
-            self.x, self.y,  # 위치
-            int(self.max_width * scale_x * self.current_hp), self.height * scale_y  # 확대된 크기
+        scale_x = 10.3  # 확대 배율 (가로)
+        scale_y = 12.3  # 확대 배율 (세로)
+        clip_width = int(self.max_width * self.current_hp)  # 현재 HP 비율에 따른 폭
+
+        self.image.clip_draw(
+            0, 0,  # 이미지의 시작 좌표
+            clip_width, self.height,  # 현재 MP 비율에 따른 너비와 높이
+            self.x - (self.max_width * scale_x - clip_width * scale_x) / 2,  # X 위치 보정
+            self.y,  # Y 위치
+            clip_width * scale_x,  # 확대된 가로 크기
+            self.height * scale_y  # 확대된 세로 크기
         )
 
 
