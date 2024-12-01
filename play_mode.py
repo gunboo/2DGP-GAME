@@ -4,7 +4,7 @@ import game_world
 from background import Background
 from character import Character
 from boss import Boss
-from hp_bar import HPBarUI,HPBar, MPBar, ExpBar
+from hp_bar import HPBarUI,HPBar, MPBar, ExpBar, BossHPBar
 
 def handle_events():
     events = get_events()
@@ -18,7 +18,7 @@ def handle_events():
 
 
 def init():
-    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui
+    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar
 
     background = Background()  # 배경 추가
     game_world.add_object(background, 0)  # 레이어 0
@@ -35,11 +35,13 @@ def init():
     mp_bar = MPBar()
     exp_bar = ExpBar()
 
+    boss_hp_bar = BossHPBar(boss)
+
 def check_collision(box1, box2):
+    """충돌 체크"""
     left1, bottom1, right1, top1 = box1
     left2, bottom2, right2, top2 = box2
 
-    # 두 박스가 겹치면 충돌
     return not (right1 < left2 or right2 < left1 or top1 < bottom2 or top2 < bottom1)
 
 def finish():
@@ -51,7 +53,7 @@ def update():
 
     hp_bar.update(character.hp)
     mp_bar.update(character.mp)
-
+    boss_hp_bar.update(boss.hp)
 
     if check_collision(character.get_bb(), boss.get_bb()):
         if current_time - character.last_damage_time >= 1.0:  # 1초 딜레이
@@ -60,6 +62,11 @@ def update():
             character.last_damage_time = current_time  # 마지막 데미지 시간 업데이트
     else:
         character.last_damage_time = 0  # 충돌 해제 시 초기화
+
+    attack_hitbox = character.get_attack_hitbox()
+    if attack_hitbox and check_collision(attack_hitbox, (boss.x - 50, boss.y - 50, boss.x + 50, boss.y + 50)):
+        boss.take_damage(0.1)  # 보스 HP 감소
+
 
 def draw():
     clear_canvas()
@@ -70,7 +77,7 @@ def draw():
     hp_bar.draw()
     mp_bar.draw()
     exp_bar.draw()
-
+    boss_hp_bar.draw()
     character.draw_bb()
     boss.draw_bb()
 

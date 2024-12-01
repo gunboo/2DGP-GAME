@@ -10,7 +10,8 @@ class Boss:
         self.x, self.y = 1300, 177 # 보스의 초기 위치
         self.frame = 0
         self.timer = 0
-
+        self.hp = 1.0  # 보스의 HP (0.0 ~ 1.0)
+        self.max_hp = 1.0  # 보스의 최대 HP
         self.image = load_image('boss1.png')  # 보스 이미지 로드
         self.state_machine = state_machine.StateMachine(self)  # 기본 상태는 Idle
         self.state_machine.change_state(Idle)
@@ -26,13 +27,14 @@ class Boss:
         return self.x - 70, self.y - 100, self.x + 70, self.y + 100
 
     def draw_bb(self):
-        # 디버깅용: 충돌 박스 그리기
         draw_rectangle(*self.get_bb())
 
-    def take_damage(self, danage):
-        """보스가 피해를 입을 때 HP 감소"""
-        self.hp = max(0, self.hp - damage)  # HP 감소
-        self.hp_bar.update(self.hp)  # HP 바 상태 업데이트
+    def take_damage(self, damage):
+        """보스가 피해를 입을 때"""
+        self.hp = max(0, self.hp - damage)  # HP 감소 (최소값은 0)
+        print(f"Boss HP: {self.hp}")
+        if self.hp <= 0:
+            self.change_state(Dead)  # HP가 0이 되면 Dead 상태로 전환
 
 class Idle:
     @staticmethod
@@ -118,3 +120,5 @@ class Attack1:
 
         # 보스 이미지를 좌표에 맞게 출력
         boss.image.clip_draw(x1, y1, x2 - x1, y2 - y1, boss.x, boss.y + 50)
+class Dead:
+    pass

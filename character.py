@@ -19,6 +19,8 @@ class Character:
         self.last_damage_time = 0  # 마지막으로 데미지를 받은 시간 (초)
         self.is_knocked_back = False  # 넉백 상태
         self.knockback_timer = 0  # 넉백 지속 시간
+        self.attack_active = False  # 공격 상태 플래그
+        self.attack_range = 50  # 공격 히트박스 범위
 
         self.face_dir = 1
         self.dir = 0
@@ -71,7 +73,17 @@ class Character:
         if isinstance(other, boss.Boss):
             if self.state_machine.current_state != Hurt:  # 현재 Hurt 상태가 아니면
                 self.state_machine.change_state(Hurt)  # Hurt 상태로 전환
-# 상태 정의
+
+    def attack(self, boss):
+        if isinstance(boss, boss.Boss):
+            boss.take_damage(0.1)  # 보스 HP를 0.1 감소
+            print(f"Boss HP after attack: {boss.hp}")
+
+    def get_attack_hitbox(self):
+        if self.attack_active:  # 공격 중일 때만 히트박스를 반환
+            return self.x - self.attack_range, self.y - 25, self.x + self.attack_range, self.y + 25
+        return None  # 공격 중이 아니면 히트박스 없음
+
 class Idle:
 
     @staticmethod

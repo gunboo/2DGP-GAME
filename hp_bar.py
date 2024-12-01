@@ -83,3 +83,26 @@ class ExpBar:
             self.x, self.y,
             int(self.max_width * scale_x * self.current_exp), self.height * scale_y
         )
+
+class BossHPBar:
+    def __init__(self, boss):
+        self.boss = boss  # 보스를 따라다니기 위해 보스 객체 참조
+        self.image = load_image('boss_hp.png')  # 보스 체력바 이미지
+        self.max_width = self.image.w  # 체력바 전체 너비
+        self.height = self.image.h  # 체력바 높이
+        self.scale = 0.5  # 체력바 크기 조정 비율 (0.5 = 50%)
+        self.offset_x = 0  # 보스와 체력바 간의 X축 오프셋
+        self.offset_y = 150  # 보스와 체력바 간의 Y축 오프셋
+
+    def update(self, hp_ratio):
+        self.current_hp = hp_ratio  # 현재 체력 비율 업데이트
+
+    def draw(self):
+        # 체력바 크기 조정 및 보스 위치 기반으로 출력
+        bar_width = int(self.max_width * self.current_hp * self.scale)
+        bar_height = int(self.height * self.scale)
+        self.image.clip_draw(
+            0, 0, bar_width, self.height,  # 체력 비율에 맞게 잘라서 그림
+            self.boss.x + self.offset_x, self.boss.y + self.offset_y,  # 보스의 위치 기준
+            bar_width, bar_height  # 조정된 크기
+        )
