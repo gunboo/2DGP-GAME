@@ -13,6 +13,7 @@ def right_up(e): return e.type == SDL_KEYUP and e.key == SDLK_RIGHT
 def ctrl_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_LCTRL
 def shift_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_LSHIFT
 def alt_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_LALT
+
 class StateMachine:
     def __init__(self, owner):
         self.owner = owner
@@ -36,8 +37,8 @@ class StateMachine:
         if self.current_state:
             self.current_state.exit(self.owner)
         self.current_state = new_state
-        self.current_state.enter(self.owner, event)  # 이벤트 전달
-  # enter 호출 (불필요한 추가 인자 제거)
+        self.current_state.enter(self.owner,event)  # 이벤트 전달
+
 
     def update(self):
         if self.current_state:

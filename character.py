@@ -2,7 +2,7 @@ from pico2d import *
 import game_framework
 from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down, alt_down
 from hp_bar import HPBar,HPBarUI, MPBar,ExpBar
-
+import boss
 
 FRAMES_PER_ACTION = 8
 ACTION_PER_TIME = 1.0 / 1.0
@@ -48,8 +48,8 @@ class Character:
 
             self.is_knocked_back = True
             self.knockback_timer = 0.5  # 넉백 지속 시간 (0.5초)
-            self.state = Hurt  # Hurt 상태로 전환
             self.knockback_dir = knockback_dir  # 넉백 방향 (-1: 왼쪽, 1: 오른쪽)
+            self.state_machine.change_state(Hurt)
 
     def use_mana(self,amount):
         self.mp = max(0, self.mp - amount)
@@ -67,8 +67,10 @@ class Character:
         self.hp_bar.draw()
         self.mp_bar.draw()
 
-
-
+    def handle_collision(self, other):
+        if isinstance(other, boss.Boss):
+            if self.state_machine.current_state != Hurt:  # 현재 Hurt 상태가 아니면
+                self.state_machine.change_state(Hurt)  # Hurt 상태로 전환
 # 상태 정의
 class Idle:
 
@@ -298,27 +300,35 @@ class Jump:
 
 class Hurt:
     @staticmethod
-    def enter(character):
-        character.frame = 0  # Hurt 상태 진입 시 첫 프레임 초기화
+    def enter(character, event = None):
+        character.frame = 0
+        character.knockback_timer = 0.5  # 넉백 유지 시간
+        character.knockback_dir = -1 if character.face_dir == 1 else 1  # 넉백 방향 설정
+        print("Entered Hurt State")  # 디버깅 메시지
 
     @staticmethod
     def exit(character):
-        pass
+        character.knockback_timer = 0
 
     @staticmethod
     def do(character):
-        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 3
+        character.knockback_timer -= game_framework.frame_time
+        if character.knockback_timer > 0:
+            character.x += character.knockback_dir * 300 * game_framework.frame_time  # 넉백 이동
+        else:
+            character.is_knocked_back = False  # 넉백 상태 해제
+            character.state_machine.change_state(Idle)  # 넉백이 끝나면 Idle 상태로 전환
 
     @staticmethod
     def draw(character):
-        # Hurt 상태의 스프라이트 출력 (예: 5번째 줄)
-        frame_width = 84
-        frame_height = 80
-        row = 6  # Hurt 모션이 5번째 줄 (4번째 행)
+        # Hurt 상태 프레임 그리기
+        frame_width = 84  # 프레임 너비
+        frame_height = 80  # 프레임 높이
+        row = 6  # Hurt 모션이 7번째 행
         col = int(character.frame)
+        y_position = character.image.h - (row + 1) * frame_height
+
         character.image.clip_draw(
-            col * frame_width,
-            character.image.h - (row + 1) * frame_height,
-            frame_width, frame_height,
+            col * frame_width, y_position, frame_width, frame_height,
             character.x, character.y
         )

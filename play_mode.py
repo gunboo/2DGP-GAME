@@ -52,6 +52,7 @@ def update():
     hp_bar.update(character.hp)
     mp_bar.update(character.mp)
 
+
     if check_collision(character.get_bb(), boss.get_bb()):
         if current_time - character.last_damage_time >= 1.0:  # 1초 딜레이
             knockback_dir = -1 if character.x < boss.x else 1  # 넉백 방향
@@ -59,6 +60,7 @@ def update():
             character.last_damage_time = current_time  # 마지막 데미지 시간 업데이트
     else:
         character.last_damage_time = 0  # 충돌 해제 시 초기화
+
 def draw():
     clear_canvas()
 
