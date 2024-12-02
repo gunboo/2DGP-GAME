@@ -81,8 +81,16 @@ class Character:
 
     def get_attack_hitbox(self):
         if self.attack_active:  # 공격 중일 때만 히트박스를 반환
-            return self.x - self.attack_range, self.y - 25, self.x + self.attack_range, self.y + 25
-        return None  # 공격 중이 아니면 히트박스 없음
+            if self.face_dir == 1:
+                return self.x, self.y - 25, self.x + self.attack_range, self.y + 25
+            else:
+                return self.x - self.attack_range, self.y - 25, self.x, self.y + 25
+        return None
+
+    def draw_attack_hitbox(self):
+         attack_hitbox = self.get_attack_hitbox()
+         if attack_hitbox:
+             draw_rectangle(*attack_hitbox)  # 사각형으로 히트박스 표시
 
 class Idle:
 
@@ -196,12 +204,13 @@ class Walk:
 class Attack1:
     @staticmethod
     def enter(character, event=None):
+        character.attack_active = True
         character.frame = 0  # 공격 시작 시 첫 프레임 초기화
-        character.mp -= 0.1
-        character.mp = max(0, character.mp)
+        character.mp = max(0, character.mp- 0.1)
 
     @staticmethod
     def exit(character):
+        character.attack_active = False
         pass
 
     @staticmethod

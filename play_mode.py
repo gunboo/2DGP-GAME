@@ -53,7 +53,10 @@ def update():
 
     hp_bar.update(character.hp)
     mp_bar.update(character.mp)
-    boss_hp_bar.update(boss.hp)
+    if boss.hp<= 0:
+        boss_hp_bar.update(0)
+    else:
+        boss_hp_bar.update(boss.hp)
 
     if check_collision(character.get_bb(), boss.get_bb()):
         if current_time - character.last_damage_time >= 1.0:  # 1초 딜레이
@@ -64,8 +67,9 @@ def update():
         character.last_damage_time = 0  # 충돌 해제 시 초기화
 
     attack_hitbox = character.get_attack_hitbox()
-    if attack_hitbox and check_collision(attack_hitbox, (boss.x - 50, boss.y - 50, boss.x + 50, boss.y + 50)):
+    if attack_hitbox and check_collision(attack_hitbox, boss.get_bb()):
         boss.take_damage(0.1)  # 보스 HP 감소
+        delay(0.1)
 
 
 def draw():
@@ -78,8 +82,9 @@ def draw():
     mp_bar.draw()
     exp_bar.draw()
     boss_hp_bar.draw()
-    character.draw_bb()
-    boss.draw_bb()
+    #character.draw_bb()
+    character.draw_attack_hitbox()
+    #boss.draw_bb()
 
     update_canvas()
 

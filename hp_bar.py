@@ -95,14 +95,19 @@ class BossHPBar:
         self.offset_y = 150  # 보스와 체력바 간의 Y축 오프셋
 
     def update(self, hp_ratio):
-        self.current_hp = hp_ratio  # 현재 체력 비율 업데이트
+        self.current_hp = max(0,min(hp_ratio, 1.0))  # 현재 체력 비율 업데이트
 
     def draw(self):
-        # 체력바 크기 조정 및 보스 위치 기반으로 출력
-        bar_width = int(self.max_width * self.current_hp * self.scale)
-        bar_height = int(self.height * self.scale)
+        clip_width = int(self.max_width * self.current_hp)  # 현재 체력에 따른 너비
+        scaled_width = int(clip_width * self.scale)  # 스케일 적용한 너비
+        scaled_height = int(self.height * self.scale)  # 스케일 적용한 높이
+
+        # 체력바의 오른쪽 끝 고정을 위한 X 위치 계산
+        bar_x = self.boss.x - (self.max_width * self.scale) / 2 + scaled_width / 2
+
         self.image.clip_draw(
-            0, 0, bar_width, self.height,  # 체력 비율에 맞게 잘라서 그림
-            self.boss.x + self.offset_x, self.boss.y + self.offset_y,  # 보스의 위치 기준
-            bar_width, bar_height  # 조정된 크기
+            self.max_width - clip_width, 0,  # 오른쪽에서 남은 체력만큼 출력
+            clip_width, self.height,  # 출력할 영역의 너비와 높이
+            bar_x, self.boss.y + self.offset_y,  # 체력바 위치 (보스 기준)
+            scaled_width, scaled_height  # 최종 출력 크기
         )
