@@ -1,5 +1,5 @@
 # game_world.py
-objects = [[], [], [], []]  # 0: 배경, 1: 캐릭터, 2: 보스
+objects = [[], [], [], [], []]  # 0: 배경, 1: 캐릭터, 2: 보스
 
 def add_object(obj, layer):
     objects[layer].append(obj)
@@ -15,7 +15,7 @@ def clear():
     global objects
     for layer in objects:
         layer.clear()
-    objects = [[], [], [], []]
+    objects = [[], [], [], [], []]
 
 def update():
     for layer in objects:
