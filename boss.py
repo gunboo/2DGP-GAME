@@ -146,17 +146,24 @@ class Attack1:
         boss.frame = 0  # Attack1 상태 진입 시 첫 프레임 초기화
         boss.effect_frame = 0
         boss.effect_active = True
+        boss.effect_timer = 0.5
 
     @staticmethod
     def exit(boss):
-        pass
+        boss.effect_active = False
 
     @staticmethod
     def do(boss):
         boss.timer += game_framework.frame_time
         boss.frame = (boss.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 21
 
-        # 공격 애니메이션이 끝나면 Idle 상태로 전환
+        if boss.effect_active:
+            boss.effect_timer -= game_framework.frame_time
+            boss.effect_frame = (boss.effect_frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % len(
+             AttackEffect.frame_coordinates)
+            if boss.effect_timer <= 0:
+                boss.effect_active = False
+       # 공격 애니메이션이 끝나면 Idle 상태로 전환
         if int(boss.frame) > len(Attack1.frame_coordinates) - 2:
             boss.state_machine.change_state(Idle)
 
@@ -167,7 +174,24 @@ class Attack1:
         # 보스 이미지를 좌표에 맞게 출력
         boss.image.clip_draw(x1, y1, x2 - x1, y2 - y1, boss.x, boss.y + 50)
 
-class AtaackEffect:
+        if boss.effect_active:
+            AttackEffect.draw_effect(boss.effect_image, boss.effect_frame, boss.character.x, boss.character.y)
+class AttackEffect:
+    frame_coordinates = [
+        (0, 1314, 86, 1396),   # Frame 1
+        (89, 1314, 184, 1396),  # Frame 2
+        (194, 1314, 304, 1396),  # Frame 3
+        (314, 1314, 428, 1396),  # Frame 4
+        (434, 1314, 552, 1396),  # Frame 5
+        (556, 1314, 682, 1396),  # Frame 6
+        (696, 1314, 770, 1396),  # Frame 7
+    ]
+
+    @staticmethod
+    def draw_effect(effect_image, frame, x, y):
+        col = int(frame) % len(AttackEffect.frame_coordinates)
+        x1, y1, x2, y2 = AttackEffect.frame_coordinates[col]
+        effect_image.clip_draw(x1, y1, x2 - x1, y2 - y1, x, y)
 
 class Dead:
     frame_coordinates = [
