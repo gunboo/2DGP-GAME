@@ -95,7 +95,7 @@ class BossHPBar:
         self.offset_y = 150  # 보스와 체력바 간의 Y축 오프셋
 
     def update(self, hp_ratio):
-        self.current_hp = max(0,min(hp_ratio, 1.0))  # 현재 체력 비율 업데이트
+        self.current_hp = max(0,min(hp_ratio, 3.0))  # 현재 체력 비율 업데이트
 
     def draw(self):
         clip_width = int(self.max_width * self.current_hp)  # 현재 체력에 따른 너비

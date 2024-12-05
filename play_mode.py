@@ -3,8 +3,9 @@ import game_framework
 import game_world
 from background import Background
 from character import Character
-from boss import Boss
+from boss import Boss, Dead
 from hp_bar import HPBarUI,HPBar, MPBar, ExpBar, BossHPBar
+from Tile import Tile
 
 def handle_events():
     events = get_events()
@@ -18,16 +19,22 @@ def handle_events():
 
 
 def init():
-    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar
+    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar, tiles
 
     background = Background()  # 배경 추가
     game_world.add_object(background, 0)  # 레이어 0
 
-    character = Character()  # 플레이어 캐릭터 추가
-    game_world.add_object(character, 1)  # 레이어 1
+    tiles = [
+        Tile(400, 200, 269, 317, 90, 57)
+    ]
+    for tile in tiles:
+        game_world.add_object(tile, 1)  # 타일은 레이어 1
 
-    boss = Boss()  # 보스 추가
-    game_world.add_object(boss, 2)  # 레이어 2
+    character = Character()  # 플레이어 캐릭터 추가
+    game_world.add_object(character, 2)  # 레이어
+
+    boss = Boss(character)  # 보스 추가
+    game_world.add_object(boss, 3)  # 레이어
 
     hp_bar_ui = HPBarUI()
 
@@ -53,8 +60,9 @@ def update():
 
     hp_bar.update(character.hp)
     mp_bar.update(character.mp)
-    if boss.hp<= 0:
-        boss_hp_bar.update(0)
+
+    if boss.hp<= 0 and boss.state_machine.current_state != Dead:
+        boss.state_machine.change_state(Dead)
     else:
         boss_hp_bar.update(boss.hp)
 
@@ -70,6 +78,11 @@ def update():
     if attack_hitbox and check_collision(attack_hitbox, boss.get_bb()):
         boss.take_damage(0.1)  # 보스 HP 감소
         delay(0.1)
+
+    for tile in tiles:
+        if check_collision(character.get_bb(), tile.get_bb()):
+           character.y = tile.get_bb()[3] + 20  # 타일 위로 이동
+           character.velocity_y = 0  # 점프 중단
 
 
 def draw():

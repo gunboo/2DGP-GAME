@@ -3,7 +3,8 @@ import game_framework
 from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down, alt_down
 from hp_bar import HPBar,HPBarUI, MPBar,ExpBar
 import boss
-
+from Tile import Tile
+import game_world
 FRAMES_PER_ACTION = 8
 ACTION_PER_TIME = 1.0 / 1.0
 RUN_SPEED_PPS = 200
@@ -21,7 +22,11 @@ class Character:
         self.knockback_timer = 0  # 넉백 지속 시간
         self.attack_active = False  # 공격 상태 플래그
         self.attack_range = 50  # 공격 히트박스 범위
-
+        self.gravity = -1000
+        self.velocity_y = 0
+        self.velocity_x = 0
+        self.tile_underneath = None
+        self.is_on_tile = False
         self.face_dir = 1
         self.dir = 0
         self.image = load_image('character.png')
@@ -29,15 +34,17 @@ class Character:
         self.state_machine.start(Idle)
         self.state_machine.set_transitions(
             {
-                Idle: {alt_down: Jump,right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2 },
-                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2, alt_down:Jump},
+                Idle: {alt_down: Jump, right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2},
+                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2, alt_down: Jump},
                 Attack1: {left_up: Idle, right_up: Idle},
                 Attack2: {left_up: Idle, right_up: Idle},
                 Jump: {},
             }
         )
+
     def get_bb(self):
-        return self.x -20, self.y -40, self.x+20, self.y+40
+        return self.x - 20, self.y - 40, self.x + 20, self.y + 40
+
     def draw_bb(self):
         draw_rectangle(*self.get_bb())
 
@@ -53,7 +60,7 @@ class Character:
             self.knockback_dir = knockback_dir  # 넉백 방향 (-1: 왼쪽, 1: 오른쪽)
             self.state_machine.change_state(Hurt)
 
-    def use_mana(self,amount):
+    def use_mana(self, amount):
         self.mp = max(0, self.mp - amount)
         self.mp_bar.update(self.mp)
 
@@ -62,7 +69,6 @@ class Character:
 
     def handle_event(self, event):
         self.state_machine.add_event(event)
-
 
     def draw(self):
         self.state_machine.draw()
@@ -76,7 +82,7 @@ class Character:
 
     def attack(self, boss):
         if isinstance(boss, boss.Boss):
-            boss.take_damage(0.1)  # 보스 HP를 0.1 감소
+            boss.take_damage(0.001)  # 보스 HP를 0.1 감소
             print(f"Boss HP after attack: {boss.hp}")
 
     def get_attack_hitbox(self):
@@ -91,7 +97,6 @@ class Character:
          attack_hitbox = self.get_attack_hitbox()
          if attack_hitbox:
              draw_rectangle(*attack_hitbox)  # 사각형으로 히트박스 표시
-
 class Idle:
 
     @staticmethod
@@ -278,6 +283,7 @@ class Jump:
         character.gravity = -1000 # 중력 값
         character.jump_origin_y = character.y  # 점프 시작 높이 기록
         character.frame = 0  # 점프 애니메이션 초기화
+        character.dir = 0
 
     @staticmethod
     def exit(character):
@@ -288,6 +294,8 @@ class Jump:
         # y 위치 업데이트
         character.y += character.velocity_y * game_framework.frame_time
         character.velocity_y += character.gravity * game_framework.frame_time
+
+        character.x += character.dir * RUN_SPEED_PPS * game_framework.frame_time
 
         # 지면에 도달하면 점프 종료
         if character.y <= character.jump_origin_y:
@@ -318,7 +326,14 @@ class Jump:
                 character.x, character.y + y_offset,
                 frame_width, frame_height
             )
-
+    @staticmethod
+    def handle_event(character, event):
+        if right_down(event):
+            character.dir = 1
+        elif left_down(event):
+            character.dir = -1
+        elif right_up(event) or left_up(event):
+            character.dir = 0
 class Hurt:
     @staticmethod
     def enter(character, event = None):
