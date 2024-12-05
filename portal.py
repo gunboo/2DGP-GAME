@@ -2,9 +2,9 @@ from pico2d import *
 import game_framework
 
 class Portal:
-    def __init__(self):
-        self.x = 100  # 포탈의 X 좌표
-        self.y = 90   # 포탈의 Y 좌표
+    def __init__(self,x,y):
+        self.x = x  # 포탈의 X 좌표
+        self.y = y   # 포탈의 Y 좌표
         self.image = load_image('portal.png')  # 포탈 이미지 로드
 
     def update(self):

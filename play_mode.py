@@ -8,7 +8,7 @@ from hp_bar import HPBarUI, HPBar, MPBar, ExpBar, BossHPBar
 from Tile import Tile
 from portal import Portal
 from next_map import NextMap
-
+import next_map
 
 def handle_events():
     events = get_events()
@@ -19,7 +19,8 @@ def handle_events():
             game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_UP:  # 위키를 눌렀을 때
             if check_collision(character.get_bb(), portal.get_bb()):  # 포탈과 충돌했을 때
-                game_framework.change_state(NextMap)  # 다음 맵으로 이동
+                game_framework.change_state(next_map.NextMap())  # 다음 맵으로 이동
+                return
         else:
             character.handle_event(event)  # 캐릭터에 이벤트 전달
 
@@ -32,7 +33,7 @@ def init():
     game_world.add_object(background, 0)  # 레이어 0
 
     # 포탈 추가
-    portal = Portal()  # 포탈 위치
+    portal = Portal(100, 90)  # 포탈 위치
     game_world.add_object(portal, 1)  # 레이어 1
 
     # 타일 추가
@@ -73,7 +74,13 @@ def check_collision(box1, box2):
 def finish():
     game_world.clear()
 
+def enter():
+    """플레이 모드 초기화"""
+    init()  # 초기화 함수 호출
 
+def exit():
+    """플레이 모드 종료"""
+    finish()  # 리소스 정리
 def update():
     current_time = get_time()
     game_world.update()
@@ -140,3 +147,6 @@ def pause():
 
 def resume():
     pass
+
+def exit():
+    game_world.clear()
