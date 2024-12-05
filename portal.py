@@ -22,4 +22,4 @@ class Portal:
     def draw_bb(self):
         # 포탈의 충돌 박스를 시각적으로 표시 (디버깅용)
         left, bottom, right, top = self.get_bb()
-        draw_rectangle(left, bottom, right, top)
+       # draw_rectangle(left, bottom, right, top)

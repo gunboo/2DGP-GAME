@@ -120,6 +120,13 @@ def update():
     else:
         character.is_on_tile = False  # 타일과 충돌하지 않은 경우
 
+    if boss.effect_active:  # 보스가 공격 중일 때
+        attack_hitbox = boss.get_attack_hitbox()
+        if check_collision(attack_hitbox, character.get_bb()):
+            if not boss.damage_dealt:  # 이미 데미지를 준 상태가 아니면
+                character.take_damage(0.1, -1)  # 캐릭터 HP 감소
+                boss.damage_dealt = True  # 데미지를 준 상태로 표시
+
 
 def draw():
     clear_canvas()

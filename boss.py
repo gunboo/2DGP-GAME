@@ -2,7 +2,7 @@ from pico2d import *
 import game_framework
 import state_machine
 import game_world
-
+import play_mode
 FRAMES_PER_ACTION = 16  # 한 동작당 프레임 수
 ACTION_PER_TIME = 1.0 / 1.0  # 초당 동작 수
 
@@ -20,6 +20,8 @@ class Boss:
         self.effect_active = False
         self.effect_timer = 0.0
         self.effect_image = load_image('boss1.png')
+        self.attack_range = 100  # 보스 공격 범위
+        self.damage_dealt = False  # 공격이 적용되었는지 여부
         self.image = load_image('boss1.png')  # 보스 이미지 로드
         self.state_machine = state_machine.StateMachine(self)  # 상태 머신 초기화
         self.state_machine.change_state(Idle)  # 초기 상태 설정
@@ -39,8 +41,18 @@ class Boss:
             return -1, -1, -1, -1
         return self.x - 70, self.y - 100, self.x + 70, self.y + 100
 
+    def get_attack_hitbox(self):
+        """보스의 공격 범위를 반환"""
+        return self.x - 100, self.y - 50, self.x + 100, self.y + 50
+
     def draw_bb(self):
         draw_rectangle(*self.get_bb())
+
+    def draw_attack_hitbox(self):
+        """공격 히트박스를 시각화"""
+        if self.effect_active:  # 공격 이펙트가 활성화된 경우
+            left, bottom, right, top = self.get_attack_hitbox()
+            draw_rectangle(left, bottom, right, top)
 
     def take_damage(self, damage):
         """보스가 피해를 입을 때"""
@@ -84,11 +96,11 @@ class Idle:
 
         if distance > Idle.STOP_DISTANCE:  # 250픽셀 이상이면 이동
             boss.x += (dx / distance) * boss.speed * game_framework.frame_time
-            boss.y += (dy / distance) * boss.speed * game_framework.frame_time
+            #boss.y += (dy / distance) * boss.speed * game_framework.frame_time
         else:
             # 250픽셀 이내에서는 멈춤
             boss.x = boss.x
-            boss.y = boss.y
+            #boss.y = boss.y
 
         # 애니메이션 프레임 업데이트
         boss.frame = (boss.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
@@ -147,6 +159,8 @@ class Attack1:
         boss.effect_frame = 0
         boss.effect_active = True
         boss.effect_timer = 0.5
+        boss.character.take_damage(0.1, 1)  # 캐릭터 HP 감소
+        print(f"Character HP: {boss.character.hp}")  # 디버깅용 출력
 
     @staticmethod
     def exit(boss):
@@ -155,27 +169,37 @@ class Attack1:
     @staticmethod
     def do(boss):
         boss.timer += game_framework.frame_time
-        boss.frame = (boss.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 21
+        boss.frame = (boss.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % len(
+            Attack1.frame_coordinates
+        )
 
+        # 이펙트 애니메이션 업데이트
         if boss.effect_active:
             boss.effect_timer -= game_framework.frame_time
             boss.effect_frame = (boss.effect_frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % len(
-             AttackEffect.frame_coordinates)
+                AttackEffect.frame_coordinates
+            )
             if boss.effect_timer <= 0:
                 boss.effect_active = False
-       # 공격 애니메이션이 끝나면 Idle 상태로 전환
-        if int(boss.frame) > len(Attack1.frame_coordinates) - 2:
+
+        # 공격 애니메이션이 끝나면 Idle 상태로 전환
+        if int(boss.frame) >= len(Attack1.frame_coordinates) - 1:
             boss.state_machine.change_state(Idle)
 
     @staticmethod
     def draw(boss):
-        x1, y1, x2, y2 = Attack1.frame_coordinates[int(boss.frame) % len(Attack1.frame_coordinates)]
+        # 공격 애니메이션
+        col = int(boss.frame) % len(Attack1.frame_coordinates)
+        x1, y1, x2, y2 = Attack1.frame_coordinates[col]
+        boss.image.clip_draw(x1, y1, x2 - x1, y2 - y1, boss.x, boss.y)
 
-        # 보스 이미지를 좌표에 맞게 출력
-        boss.image.clip_draw(x1, y1, x2 - x1, y2 - y1, boss.x, boss.y + 50)
-
+        # 이펙트 출력
         if boss.effect_active:
-            AttackEffect.draw_effect(boss.effect_image, boss.effect_frame, boss.character.x, boss.character.y)
+            effect_x = boss.character.x
+            effect_y = boss.character.y + 30  # 이펙트를 캐릭터 위로 약간 이동
+            AttackEffect.draw_effect(boss.effect_frame, effect_x, effect_y)
+
+
 class AttackEffect:
     frame_coordinates = [
         (0, 1314, 86, 1396),   # Frame 1
@@ -188,10 +212,14 @@ class AttackEffect:
     ]
 
     @staticmethod
-    def draw_effect(effect_image, frame, x, y):
+    def draw_effect(frame, x, y):
         col = int(frame) % len(AttackEffect.frame_coordinates)
         x1, y1, x2, y2 = AttackEffect.frame_coordinates[col]
+        effect_image = load_image("boss1.png")  # 이펙트 이미지 로드
         effect_image.clip_draw(x1, y1, x2 - x1, y2 - y1, x, y)
+
+
+
 
 class Dead:
     frame_coordinates = [

@@ -1,7 +1,6 @@
 from pico2d import open_canvas, close_canvas
 import game_framework
 import play_mode as start_mode
-import next_map
 
 # 캔버스 크기 설정
 open_canvas(1600, 600)

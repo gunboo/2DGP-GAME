@@ -5,11 +5,32 @@ from character import Character
 from portal import Portal
 import play_mode  # 이전 맵
 
+class NPC:
+    def __init__(self, x, y):
+        self.x, self.y = x, y+ 20
+        self.image = load_image('npc.png')  # NPC 이미지 로드
+        self.dialogue = False  # 대화 상태 플래그
+
+    def draw(self):
+        self.image.draw(self.x, self.y)
+
+    def update(self):
+        pass  # NPC는 이동하지 않음
+
+    def get_bb(self):
+        """충돌 박스 반환"""
+        return self.x - 25, self.y - 50, self.x + 25, self.y + 50
+
+    def draw_bb(self):
+        """충돌 박스 시각화"""
+       # draw_rectangle(*self.get_bb())
+
 class NextMap:
     def __init__(self):
         self.background = None
         self.character = None
         self.portal_back = None  # 이전 맵으로 돌아가는 포탈
+        self.npc = None  # NPC 추가
 
     def enter(self):
         """NextMap 상태로 진입할 때 호출"""
@@ -28,6 +49,10 @@ class NextMap:
         self.portal_back = Portal(1500, 90)
         game_world.add_object(self.portal_back, 1)
 
+        # NPC 추가
+        self.npc = NPC(800, 90)  # NPC 위치 지정
+        game_world.add_object(self.npc, 2)
+
     def exit(self):
         """NextMap 상태를 나갈 때 호출"""
         print("Exiting NextMap")
@@ -41,12 +66,22 @@ class NextMap:
         if self.portal_back and check_collision(self.character.get_bb(), self.portal_back.get_bb()):
             game_framework.change_state(play_mode)  # 이전 맵으로 이동
 
+        # NPC와 캐릭터 충돌 검사
+        if self.npc and check_collision(self.character.get_bb(), self.npc.get_bb()):
+            self.npc.dialogue = True
+            print("Character is interacting with NPC")
+
     def draw(self):
         """다음 맵 배경 및 기타 요소를 화면에 그림"""
         clear_canvas()
         if self.background:
             self.background.draw(800, 300)  # 배경 출력
         game_world.render()  # 게임 월드의 객체들 렌더링
+
+        # NPC 충돌 박스 시각화 (디버깅용)
+        if self.npc:
+            self.npc.draw_bb()
+
         update_canvas()
 
     def handle_events(self):
