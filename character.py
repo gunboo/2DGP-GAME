@@ -8,7 +8,8 @@ import game_world
 FRAMES_PER_ACTION = 8
 ACTION_PER_TIME = 1.0 / 1.0
 RUN_SPEED_PPS = 200
-
+from boss import Boss
+import play_mode
 
 class Character:
     def __init__(self):
@@ -82,21 +83,21 @@ class Character:
 
     def attack(self, boss):
         if isinstance(boss, boss.Boss):
-            boss.take_damage(0.001)  # 보스 HP를 0.1 감소
+            boss.take_damage(0.01)  # 보스 HP를 0.1 감소
             print(f"Boss HP after attack: {boss.hp}")
 
     def get_attack_hitbox(self):
-        if self.attack_active:  # 공격 중일 때만 히트박스를 반환
-            if self.face_dir == 1:
-                return self.x, self.y - 25, self.x + self.attack_range, self.y + 25
-            else:
-                return self.x - self.attack_range, self.y - 25, self.x, self.y + 25
+        if self.attack_active:
+            if self.face_dir == 1:  # 오른쪽
+                return self.x, self.y - 20, self.x + 50, self.y + 20
+            else:  # 왼쪽
+                return self.x - 50, self.y - 20, self.x, self.y + 20
         return None
 
     def draw_attack_hitbox(self):
          attack_hitbox = self.get_attack_hitbox()
-         if attack_hitbox:
-             draw_rectangle(*attack_hitbox)  # 사각형으로 히트박스 표시
+         #if attack_hitbox:
+             #draw_rectangle(*attack_hitbox)  # 사각형으로 히트박스 표시
 class Idle:
 
     @staticmethod
@@ -211,26 +212,34 @@ class Attack1:
     def enter(character, event=None):
         character.attack_active = True
         character.frame = 0  # 공격 시작 시 첫 프레임 초기화
-        character.mp = max(0, character.mp- 0.1)
+        character.mp = max(0, character.mp - 0.1)
+        character.has_hit = False  # 데미지를 준 상태인지 체크
 
     @staticmethod
     def exit(character):
         character.attack_active = False
-        pass
+        character.has_hit = False  # 상태 초기화
 
     @staticmethod
     def do(character):
-        # 0~5 프레임 순환 (6프레임)
+        # 애니메이션 프레임 업데이트
         character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 6
         character.mp_bar.update(character.mp)
+
+        # 공격 범위 내에서 보스와 충돌 체크
+        if not character.has_hit:  # 이미 데미지를 줬으면 더 이상 체크하지 않음
+            for obj in game_world.all_objects():
+                if isinstance(obj, Boss) and play_mode.check_collision(character.get_attack_hitbox(), obj.get_bb()):
+                    obj.take_damage(0.000001)  # 보스에게 딱 한 번만 데미지 적용
+                    print(f"Boss HP: {obj.hp}")
+                    character.has_hit = True  # 데미지 적용 여부 기록
+
         # 공격 애니메이션이 끝나면 Idle 상태로 전환
         if character.frame >= 5:
             character.state_machine.change_state(Idle)
 
     @staticmethod
     def draw(character):
-        frame_widths = [89, 89, 89, 110, 110, 110]  # 각 프레임의 실제 너비
-
         frame_coordinates = [
             (15, 689, 76, 776),  # Frame 1
             (100, 689, 168, 776),  # Frame 2
@@ -240,24 +249,25 @@ class Attack1:
             (454, 689, 558, 787)  # Frame 6
         ]
 
-        col = int(character.frame)  # 현재 프레임 인덱스
+        col = int(character.frame)
         x1, y1, x2, y2 = frame_coordinates[col]
-
 
         y_offset = 14  # Y축 보정값
 
         if character.face_dir == 1:  # 오른쪽 방향
             character.image.clip_composite_draw(
-                x1, y1, (x2 - x1), y2 - y1,  # 오른쪽 확장
-                0, 'h',  # 수평 반전
-                character.x, character.y + y_offset,  # 출력 위치
-                        (x2 - x1), y2 - y1  # 최종 출력 크기
+                x1, y1, (x2 - x1), y2 - y1,
+                0, 'h',
+                character.x, character.y + y_offset,
+                (x2 - x1), y2 - y1
             )
         else:  # 왼쪽 방향
             character.image.clip_draw(
-                x1, y1, (x2 - x1), y2 - y1,  # 오른쪽 확장 적용
-                character.x, character.y + y_offset  # 출력 위치
+                x1, y1, (x2 - x1), y2 - y1,
+                character.x, character.y + y_offset
             )
+
+
 
 class Attack2:
     @staticmethod

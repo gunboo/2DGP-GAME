@@ -26,7 +26,7 @@ def handle_events():
 
 
 def init():
-    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar, tiles, portal
+    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar, tiles, portal,npcs
 
     # 배경 추가
     background = Background()
@@ -89,6 +89,7 @@ def update():
     hp_bar.update(character.hp)
     mp_bar.update(character.mp)
 
+
     # 보스의 상태 업데이트
     if boss.hp <= 0 and boss.state_machine.current_state != Dead:
         boss.state_machine.change_state(Dead)
@@ -107,7 +108,7 @@ def update():
     # 캐릭터 공격 히트박스와 보스 충돌 체크
     attack_hitbox = character.get_attack_hitbox()
     if attack_hitbox and check_collision(attack_hitbox, boss.get_bb()):
-        boss.take_damage(0.1)  # 보스 HP 감소
+        boss.take_damage(0.0005)  # 보스 HP 감소
         delay(0.1)
 
     # 캐릭터와 타일 충돌 체크

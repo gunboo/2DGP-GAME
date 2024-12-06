@@ -13,8 +13,8 @@ class Boss:
         self.timer = 0
         self.character = character  # 캐릭터 객체 참조
         self.dead = False
-        self.hp = 3.0  # 보스의 HP (0.0 ~ 1.0)
-        self.max_hp = 3.0  # 보스의 최대 HP
+        self.hp = 1.0  # 보스의 HP (0.0 ~ 1.0)
+        self.max_hp = 1.0  # 보스의 최대 HP
         self.speed = 100  # 보스의 이동 속도
         self.effect_frame = 0
         self.effect_active = False
@@ -196,7 +196,7 @@ class Attack1:
         # 이펙트 출력
         if boss.effect_active:
             effect_x = boss.character.x
-            effect_y = boss.character.y + 30  # 이펙트를 캐릭터 위로 약간 이동
+            effect_y = boss.character.y   # 이펙트를 캐릭터 위로 약간 이동
             AttackEffect.draw_effect(boss.effect_frame, effect_x, effect_y)
 
 

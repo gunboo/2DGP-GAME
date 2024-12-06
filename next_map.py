@@ -5,18 +5,22 @@ from character import Character
 from portal import Portal
 import play_mode  # 이전 맵
 
+
 class NPC:
     def __init__(self, x, y):
         self.x, self.y = x, y+ 20
         self.image = load_image('npc.png')  # NPC 이미지 로드
-        self.dialogue = False  # 대화 상태 플래그
+        self.dialogue = "마뇽을 죽이고 저희 마을 구해주세요"
+        self.is_talking = False
+        self.font = load_font('light.otf', 20)
 
     def draw(self):
         self.image.draw(self.x, self.y)
+        if self.is_talking:
+            self.font.draw(self.x - 140, self.y + 70, self.dialogue,(255,255,255))
 
     def update(self):
-        pass  # NPC는 이동하지 않음
-
+        pass
     def get_bb(self):
         """충돌 박스 반환"""
         return self.x - 25, self.y - 50, self.x + 25, self.y + 50
@@ -68,8 +72,9 @@ class NextMap:
 
         # NPC와 캐릭터 충돌 검사
         if self.npc and check_collision(self.character.get_bb(), self.npc.get_bb()):
-            self.npc.dialogue = True
-            print("Character is interacting with NPC")
+            self.npc.is_talking = True  # 캐릭터가 NPC와 충돌 중
+        else:
+            self.npc.is_talking = False  # 캐릭터와 NPC가 충돌하지 않
 
     def draw(self):
         """다음 맵 배경 및 기타 요소를 화면에 그림"""
