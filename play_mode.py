@@ -9,6 +9,7 @@ from Tile import Tile
 from portal import Portal
 from next_map import NextMap
 import next_map
+from inventory import Inventory
 
 def handle_events():
     events = get_events()
@@ -21,12 +22,18 @@ def handle_events():
             if check_collision(character.get_bb(), portal.get_bb()):  # 포탈과 충돌했을 때
                 game_framework.change_state(next_map.NextMap())  # 다음 맵으로 이동
                 return
+        if event.key == SDLK_PAGEUP and inventory.hp_potion_count > 0:  # PageUp 키
+            character.use_hp_potion()
+            inventory.hp_potion_count -= 1
+        elif event.key == SDLK_PAGEDOWN and inventory.mp_potion_count > 0:  # PageDown 키
+            character.use_mp_potion()
+            inventory.mp_potion_count -= 1
         else:
             character.handle_event(event)  # 캐릭터에 이벤트 전달
 
 
 def init():
-    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar, tiles, portal,npcs
+    global background, character, boss, hp_bar, mp_bar, exp_bar, hp_bar_ui, boss_hp_bar, tiles, portal,npcs, inventory
 
     # 배경 추가
     background = Background()
@@ -35,6 +42,8 @@ def init():
     # 포탈 추가
     portal = Portal(100, 90)  # 포탈 위치
     game_world.add_object(portal, 1)  # 레이어 1
+
+    # 인벤토리 추가
 
     # 타일 추가
     tiles = [
@@ -58,7 +67,7 @@ def init():
     mp_bar = MPBar()
     exp_bar = ExpBar()
     boss_hp_bar = BossHPBar(boss)
-
+    inventory = Inventory(character)
 
 def check_collision(box1, box2):
     """충돌 체크"""
@@ -88,7 +97,7 @@ def update():
     # UI 업데이트
     hp_bar.update(character.hp)
     mp_bar.update(character.mp)
-
+    inventory.update()
 
     # 보스의 상태 업데이트
     if boss.hp <= 0 and boss.state_machine.current_state != Dead:
@@ -136,6 +145,7 @@ def draw():
     game_world.render()
 
     # UI 그리기
+    inventory.draw()
     hp_bar_ui.draw()
     hp_bar.draw()
     mp_bar.draw()

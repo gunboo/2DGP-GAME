@@ -10,12 +10,14 @@ class NPC:
     def __init__(self, x, y):
         self.x, self.y = x, y+ 20
         self.image = load_image('npc.png')  # NPC 이미지 로드
+        self.image2 = load_image('0.png')
         self.dialogue = "마뇽을 죽이고 저희 마을 구해주세요"
         self.is_talking = False
         self.font = load_font('light.otf', 20)
 
     def draw(self):
         self.image.draw(self.x, self.y)
+        self.image2.draw(self.x, self.y + 100)
         if self.is_talking:
             self.font.draw(self.x - 140, self.y + 70, self.dialogue,(255,255,255))
 

@@ -1,4 +1,4 @@
-from pico2d import SDL_KEYDOWN, SDLK_LEFT, SDL_KEYUP, SDLK_RIGHT, SDLK_LCTRL, SDLK_LSHIFT
+from pico2d import SDL_KEYDOWN, SDLK_LEFT, SDL_KEYUP, SDLK_RIGHT, SDLK_LCTRL, SDLK_LSHIFT, SDLK_PAGEDOWN, SDLK_PAGEUP
 from sdl2 import SDLK_LALT
 
 FRAMES_PER_ACTION = 8  # 한 동작당 프레임 수
@@ -13,6 +13,8 @@ def right_up(e): return e.type == SDL_KEYUP and e.key == SDLK_RIGHT
 def ctrl_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_LCTRL
 def shift_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_LSHIFT
 def alt_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_LALT
+def page_down(e): return e.type == SDL_KEYDOWN and e.key == SDLK_PAGEDOWN
+def page_up(e): return e.type == SDL_KEYDOWN and e.key == SDLK_PAGEUP
 
 class StateMachine:
     def __init__(self, owner):

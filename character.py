@@ -1,6 +1,6 @@
 from pico2d import *
 import game_framework
-from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down, alt_down
+from state_machine import StateMachine, left_down, left_up, right_down, right_up, ctrl_down, shift_down, alt_down, page_down, page_up
 from hp_bar import HPBar,HPBarUI, MPBar,ExpBar
 import boss
 from Tile import Tile
@@ -35,13 +35,13 @@ class Character:
         self.state_machine.start(Idle)
         self.state_machine.set_transitions(
             {
-                Idle: {alt_down: Jump, right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2},
-                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2, alt_down: Jump},
+                Idle: {alt_down: Jump, right_down: Walk, left_down: Walk, ctrl_down: Attack1, shift_down: Attack2},   # PageUp 키 입력 시 HP 포션 사용 상태로 전환
+                Walk: {right_up: Idle, left_up: Idle, ctrl_down: Attack1, shift_down: Attack2, alt_down: Jump},  # PageUp 키 입력 시 HP 포션 사용 상태로 전환},
                 Attack1: {left_up: Idle, right_up: Idle},
                 Attack2: {left_up: Idle, right_up: Idle},
                 Jump: {},
             }
-        )
+             )
 
     def get_bb(self):
         return self.x - 20, self.y - 40, self.x + 20, self.y + 40
@@ -98,6 +98,22 @@ class Character:
          attack_hitbox = self.get_attack_hitbox()
          #if attack_hitbox:
              #draw_rectangle(*attack_hitbox)  # 사각형으로 히트박스 표시
+
+    def use_hp_potion(self):
+        heal_amount = 0.05
+        self.hp = min(self.hp + heal_amount, 1.0)
+        self.hp_bar.update(self.hp)
+        print(f"HP 포션 사용: 현재 체력 {self.hp * 100:.0f}%")
+        return True
+
+    def use_mp_potion(self):
+        heal_amount = 0.05
+        self.mp = min(self.mp + heal_amount, 1.0)
+        self.mp_bar.update(self.mp)
+        print(f"MP 포션 사용: 현재 마나 {self.mp * 100:.0f}%")
+        return True
+
+
 class Idle:
 
     @staticmethod
@@ -378,3 +394,4 @@ class Hurt:
             col * frame_width, y_position, frame_width, frame_height,
             character.x, character.y
         )
+
