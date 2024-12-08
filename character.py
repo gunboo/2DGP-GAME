@@ -133,6 +133,10 @@ class Idle:
     @staticmethod
     def do(character):
         # frame_time 기반 애니메이션 업데이트
+        if character.hp <= 0:
+            character.state_machine.change_state(Dead)
+            return
+
         character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 10
 
     @staticmethod
@@ -167,6 +171,14 @@ class Idle:
             )
 
 class Walk:
+    # 프레임 좌표를 리스트로 정의 (시작 x, y, 끝 x, y)
+    frame_coordinates = [
+        (0, 588, 81, 663),   # Frame 1
+        (87, 588, 175, 663),  # Frame 2
+        (176, 588, 262, 663),  # Frame 3
+        (262, 588, 348, 663),  # Frame 4
+    ]
+
     @staticmethod
     def enter(character, event=None):
         if event and right_down(event):
@@ -175,7 +187,6 @@ class Walk:
             character.dir = -1  # 왼쪽 이동
 
         character.action = 1  # Walk 액션 설정
-
         character.frame = 0  # Walk 상태 진입 시 첫 프레임으로 초기화
 
     @staticmethod
@@ -186,51 +197,56 @@ class Walk:
     @staticmethod
     def do(character):
         # 0~3 프레임 순환 (4프레임)
-        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 4
-        character.x += character.dir * RUN_SPEED_PPS * game_framework.frame_time  # 캐릭터 이동
+        if character.hp <= 0:
+            character.state_machine.change_state(Dead)
+            return
 
+        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % len(Walk.frame_coordinates)
+        character.x += character.dir * RUN_SPEED_PPS * game_framework.frame_time  # 캐릭터 이동
 
     @staticmethod
     def draw(character):
-        frame_width = 84  # 프레임 너비
-        frame_height = 80  # 프레임 높이
-        col = int(character.frame)  # 현재 열 번호 (0~3)
-        row = 2  # 걷는 모션이 3번째 줄(2번째 행)
-
-        # Y 위치 조정 (캐릭터의 y축을 약간 위로 이동)
-        y_position = character.image.h - (row + 1) * frame_height - 40  # 10px 위로 보정
+        # 현재 프레임의 좌표 가져오기
+        col = int(character.frame) % len(Walk.frame_coordinates)
+        x1, y1, x2, y2 = Walk.frame_coordinates[col]
 
         if character.dir == 1:
+            # 오른쪽 방향
             character.image.clip_composite_draw(
-                col * frame_width,  # 스프라이트의 열 시작 위치
-                y_position,  # Y 위치
-                frame_width,  # 프레임 너비
-                frame_height,  # 프레임 높이
+                x1, y1, x2 - x1, y2 - y1,  # 좌표
                 0,  # 회전 각도
                 'h',  # 수평 반전
-                character.x,  # 출력 X 위치 (화면상의 위치)
-                character.y,  # 출력 Y 위치 (화면상의 위치)
-                frame_width,  # 실제 그릴 너비
-                frame_height
+                character.x,  # 화면상의 X 위치
+                character.y,  # 화면상의 Y 위치
+                x2 - x1,  # 출력 너비
+                y2 - y1   # 출력 높이
             )
         else:
+            # 왼쪽 방향
             character.image.clip_draw(
-                col * frame_width + 5,  # 열에 따른 X 위치
-                y_position,  # 보정된 Y 위치
-                frame_width,  # 프레임 너비
-                frame_height,  # 프레임 높이
-                character.x,  # 출력 X 위치
-                character.y  # 출력 Y 위치
-        )
+                x1, y1, x2 - x1, y2 - y1,  # 좌표
+                character.x,  # 화면상의 X 위치
+                character.y   # 화면상의 Y 위치
+            )
+
 
 class Attack1:
     @staticmethod
     def enter(character, event=None):
+        if character.mp <= 0:
+            print("MP가 부족하여 공격할 수 없습니다!")
+            character.state_machine.change_state(Idle)  # Idle 상태로 즉시 전환
+            return
+
         character.attack_active = True
         character.frame = 0  # 공격 시작 시 첫 프레임 초기화
         character.mp = max(0, character.mp - 0.1)
         character.has_hit = False  # 데미지를 준 상태인지 체크
 
+        if not hasattr(character, 'attack_sfx'):
+            character.attack_sfx = load_wav('attack1_sound.wav')  # 효과음 로드
+            character.attack_sfx.set_volume(64)  # 효과음 볼륨 설정
+        character.attack_sfx.play()  # 효과음 재생
     @staticmethod
     def exit(character):
         character.attack_active = False
@@ -284,23 +300,86 @@ class Attack1:
             )
 
 
-
 class Attack2:
-    @staticmethod
-    def enter(character):
-        character.frame = 0
+    frame_coordinates = [
+        (0, 505, 87, 574),   # Frame 1
+        (87, 505, 213, 574),  # Frame 2
+        (214, 505, 342, 574),  # Frame 3
+        (343, 505, 427, 574),  # Frame 4
+        (433, 505, 537, 574),  # Frame 5
+        (540, 505, 593, 601),  # Frame 6 (끝 Y축 601)
+        (594, 505, 722, 601),  # Frame 7 (끝 Y축 601)
+        (723, 505, 850, 601),  # Frame 8 (끝 Y축 601)
+    ]
 
+    @staticmethod
+    def enter(character, event=None):
+        if character.mp < 0.2:  # 마나 부족 체크
+            print("Not enough MP to use Attack2!")
+            character.state_machine.change_state(Idle)
+            return
+
+        character.frame = 0  # 시작 프레임 초기화
+        character.attack_active = True
+        character.has_hit = False  # 보스 타격 상태 초기화
+        character.mp -= 0.2  # 마나 소모
+        character.mp = max(0, character.mp)  # 마나가 음수로 내려가지 않도록 제한
+        character.mp_bar.update(character.mp)  # MP UI 업데이트
+
+        if not hasattr(character, 'attack_stx'):
+            character.attack_stx = load_wav('attack2_sound.wav')  # 효과음 로드
+            character.attack_stx.set_volume(64)  # 효과음 볼륨 설정
+        character.attack_stx.play()  # 효과음 재생
     @staticmethod
     def exit(character):
-        pass
+        character.attack_active = False
+        character.has_hit = False  # 상태 초기화
 
     @staticmethod
     def do(character):
-        character.frame = (character.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 4
+        # 프레임 업데이트
+        character.frame += FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time
+
+        # 현재 프레임이 범위 내에 있을 때만 충돌 체크
+        if not character.has_hit and int(character.frame) < len(Attack2.frame_coordinates):
+            for obj in game_world.all_objects():
+                if isinstance(obj, Boss) and play_mode.check_collision(character.get_attack_hitbox(), obj.get_bb()):
+                    obj.take_damage(0.1)  # 보스에게 데미지 적용
+                    print(f"Boss HP: {obj.hp}")
+                    character.has_hit = True  # 데미지 적용 여부 기록
+
+        # 애니메이션이 끝나면 Idle 상태로 전환
+        if character.frame >= len(Attack2.frame_coordinates):
+            character.frame = 0  # 프레임 초기화
+            character.state_machine.change_state(Idle)
 
     @staticmethod
     def draw(character):
-        character.image.clip_draw(int(character.frame) * 84, 3 * 80, 84, 80, character.x, character.y)
+        # 현재 프레임 좌표 가져오기
+        col = int(character.frame)  # 현재 프레임 인덱스
+        if col >= len(Attack2.frame_coordinates):  # 인덱스 초과 방지
+            col = len(Attack2.frame_coordinates) - 1
+        x1, y1, x2, y2 = Attack2.frame_coordinates[col]
+
+        # Y축을 고정하기 위해 기준 높이를 사용
+        base_y = 574 if y2 == 574 else 601  # 프레임 끝 Y축에 따라 기준값 설정
+        frame_height = y2 - y1
+        y_correction = base_y - (y1 + frame_height)  # 기준 높이에 맞추는 보정값
+
+        # 방향에 따라 이미지를 그립니다.
+        if character.face_dir == 1:  # 오른쪽 방향
+            character.image.clip_composite_draw(
+                x1, y1, x2 - x1, y2 - y1,  # 이미지 내 프레임 좌표
+                0, 'h',  # 수평 반전
+                character.x, character.y + y_correction,  # 캐릭터 위치
+                x2 - x1, y2 - y1  # 출력 크기
+            )
+        else:  # 왼쪽 방향
+            character.image.clip_draw(
+                x1, y1, x2 - x1, y2 - y1,  # 이미지 내 프레임 좌표
+                character.x, character.y + y_correction  # 캐릭터 위치
+            )
+
 
 class Jump:
     @staticmethod
@@ -360,6 +439,7 @@ class Jump:
             character.dir = -1
         elif right_up(event) or left_up(event):
             character.dir = 0
+
 class Hurt:
     @staticmethod
     def enter(character, event = None):
@@ -394,4 +474,50 @@ class Hurt:
             col * frame_width, y_position, frame_width, frame_height,
             character.x, character.y
         )
+
+class Dead:
+    @staticmethod
+    def enter(character, event=None):
+        print("캐릭터가 죽었습니다.")
+        character.frame = 0  # 죽는 애니메이션 초기화
+        character.attack_active = False
+        character.time1 = 0
+        # 죽는 애니메이션 이미지 로드
+        if not hasattr(character, 'dead_image'):
+            character.dead_image = load_image('dead.png')  # 업로드한 이미지 사용
+
+    @staticmethod
+    def exit(character):
+        import sys  # 게임 종료를 위해 sys 모듈을 가져옵니다.
+        print("게임이 종료됩니다.")
+        sys.exit()  # 게임 종료
+
+    @staticmethod
+    def do(character):
+        # 죽는 애니메이션 처리
+        if character.frame < 6:  # 프레임 개수(6개)
+            character.frame += FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time
+        else:
+            character.frame = 5  # 마지막 프레임에서 고정
+
+    @staticmethod
+    def draw(character):
+        frame_coordinates = [
+            (0, 54, 93, 97),  # Frame 1
+            (99, 54, 189, 97),  # Frame 2
+            (191, 54, 276, 97),  # Frame 3
+            (317, 54, 375, 97),  # Frame 4
+            (449, 54, 504, 97),  # Frame 5
+            (565, 54, 618, 97),  # Frame 6
+        ]
+
+        col = min(int(character.frame), len(frame_coordinates) - 1)
+        x1, y1, x2, y2 = frame_coordinates[col]
+
+        # 이미지 클립 드로우
+        character.dead_image.clip_draw(
+            x1, y1, x2 - x1, y2 - y1,  # 이미지 내 프레임 좌표
+            character.x, character.y   # 캐릭터 위치
+        )
+
 
